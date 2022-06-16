@@ -12,7 +12,9 @@ ZET_EDITOR=$EDITOR
 PUBLIC=$ZETDIR
 PRIVATE=$ZETDIR_PRIVATE
 OPTION=$PUBLIC
-TWEEPY_CONF="./util/tweepy.conf"
+BASE_DIR="/home/michael/Public/repos/github.com/michaelarn0ld/zet"
+TWEEPY_CONF="$BASE_DIR/util/tweepy.conf"
+
 
 r='\e[31m' # red
 g='\e[32m' # green
@@ -67,7 +69,7 @@ x_configure_tweepy() {
       read -p "Satisfied with current configuration? (y/n): " confirm
 
       if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
-        printf "consumer_key=%s\nconsumer_secret=%s\naccess_token=%s\naccess_token_secret=%s\n" "$consumer_key" "$consumer_secret" "$access_token" "$access_token_secret" > "$TWEEPY_CONF"
+        echo -ne "consumer_key=%s\nconsumer_secret=%s\naccess_token=%s\naccess_token_secret=%s\n" "$consumer_key" "$consumer_secret" "$access_token" "$access_token_secret" > $TWEEPY_CONF
         return 0
       fi
 
@@ -174,8 +176,6 @@ x_post() {
       x_configure_tweepy
       rc="$?"
       [[ "$rc" == 0 ]] || x_exit
-      echo "MADE IT"
-      exit
     fi
     readarray -t directories <<< "$(x_all)"
     if [[ " ${directories[*]} " =~ " $1 " ]]; then
@@ -184,7 +184,7 @@ x_post() {
         post=$(head -1 $zettel | sed 's/^# //')
         hashtags=$(tail -1 $zettel)
         url="https://github.com/michaelarn0ld/zettelkasten-public/tree/main/$1"
-        ./util/tweet "$post" "$hashtags" "$url"
+        $BASE_DIR/util/tweet "$post" "$hashtags" "$url"
     fi
 }
 
