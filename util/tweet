@@ -1,0 +1,45 @@
+#!/usr/bin/python3
+
+import tweepy
+import sys
+
+# authentication
+def get_auth_keys():
+    filename = "./util/tweepy.conf"
+    with open(filename) as f:
+        lines = f.readlines()
+    keys = {}
+    for line in lines:
+        field = line.split('=')
+        if not field:
+            continue
+        keys[field[0]] = field[1].strip()
+    return keys
+
+
+# message to tweet
+msg = {
+"post": sys.argv[1],
+"tags": sys.argv[2],
+"url": sys.argv[3]
+}
+
+# tweet takes a msg (zettel) and posts it to my twitter feed
+def tweet(keys, msg):
+    auth = tweepy.OAuthHandler(keys["consumer_key"], keys["consumer_secret"])
+    auth.set_access_token(keys["access_token"], keys["access_token_secret"])
+    api = tweepy.API(auth)
+    post = f'{msg["url"]}\n{msg["post"]}\n{msg["tags"]}'
+    api.update_status(status =post)
+
+def main():
+    try:
+        keys = get_auth_keys()
+        tweet(keys, msg)
+        return 0
+    except:
+        print("FAILED TO TWEET...")
+        return 1
+
+if __name__ == "__main__":
+    main()

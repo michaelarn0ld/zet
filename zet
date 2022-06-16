@@ -1,0 +1,335 @@
+#!/bin/bash
+
+
+(( BASH_VERSINFO[0] < 4 )) && echo "Bash 4+ required." && exit 1
+
+
+# -------------------------------------------------
+# ---- configuration settings for your zet --------
+# -------------------------------------------------
+
+ZET_EDITOR=$EDITOR
+PUBLIC=$ZETDIR
+PRIVATE=$ZETDIR_PRIVATE
+OPTION=$PUBLIC
+TWEEPY_CONF="./util/tweepy.conf"
+
+r='\e[31m' # red
+g='\e[32m' # green
+y='\e[33m' # yellow
+b='\e[34m' # blue
+p='\e[35m' # purple
+a='\e[36m' # aqua
+w='\e[37m' # white
+x='\e[0m'  # reset
+z='\e[30m' # black
+
+
+
+# -----------------------------------------
+# ----------- commands for zet ------------
+# -----------------------------------------
+
+## returns all zettels from the session directory
+x_all() {
+    local dir="$(x_dir)"
+    ls $dir | grep -v '.md'
+}
+
+## configures twitter api for python
+x_configure_tweepy() {
+  read -p "Would you like to configure your zettelkasten for use with twitter? (y/n): " configure
+  if [[ "$configure" == "n" || "$configure" == "N" ]]; then
+    return 1
+  fi
+
+  if [[ "$configure" != "y" && "$configure" != "Y" ]]; then
+    echo "ERROR: input must be (y/n)"
+    return 1
+  fi
+  printf "\n"
+
+  while true; do
+    echo "================================"
+    echo "Press CTRL+C at any time to exit"
+    echo "================================"
+    printf "\n"
+    read -p "Enter your consumer key: " consumer_key
+    read -p "Enter your consumer secret: " consumer_secret
+    read -p "Enter your access token: " access_token
+    read -p "Enter your access token secret: " access_token_secret
+    printf "\n"
+
+    printf "Current configurations:\nconsumer_key=%s\nconsumer_secret=%s\naccess_token=%s\naccess_token_secret=%s\n" "$consumer_key" "$consumer_secret" "$access_token" "$access_token_secret"
+    printf "\n"
+
+    while true; do
+      read -p "Satisfied with current configuration? (y/n): " confirm
+
+      if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+        printf "consumer_key=%s\nconsumer_secret=%s\naccess_token=%s\naccess_token_secret=%s\n" "$consumer_key" "$consumer_secret" "$access_token" "$access_token_secret" > "$TWEEPY_CONF"
+        return 0
+      fi
+
+      if [[ "$confirm" == "n" || "$confirm" == "N" ]]; then
+        break
+      fi
+      echo "WARN: input must be (y/n)"
+    done
+    printf "\n\n"
+  done
+}
+
+## creates a new zettel in the session directory & pushes to git repo after wq
+x_create() {
+    if [[ "$#" -lt 1 ]]; then
+        exit 1;
+    fi
+    local title="$*"
+    local dir readme datetime
+    datetime="$(x_isomin)"
+    dir="$(x_dir)/$datetime"
+    readme="$dir/README.md"
+    mkdir -p "$dir"
+    printf "%s\n\n%s\n" "# $title" "## Tags" > "$readme"
+    "$ZET_EDITOR" "$readme"
+    cd "$dir" &>/dev/null
+    [[ -s "$dir/README.md" ]] || return 1
+    line=$(head -1 "$dir/README.md" | sed 's/^# //')
+    test -n "$line"
+    echo "Committing: $line"
+    # parse the tags of the zet we just made and try to add them to registry
+    readarray -t file_tags <<< "$(x_tags $datetime | tr -d '#' | tr ' ' '\n')"
+    for j in "${file_tags[@]}"; do
+        $(x_register $j)
+    done
+    sort -o "$(x_dir)/REGISTRY.md"{,}
+    $(x_push $line)
+}
+
+## sets the session directory to either the public or private zk
+x_dir() {
+    local dir="$OPTION"
+    mkdir -p "$dir" && echo "$dir"
+}
+
+## edits a zettel and pushes it to respective gitlab repo
+x_edit() {
+    readarray -t directories <<< "$(x_all)"
+    if [[ " ${directories[*]} " =~ " $1 " ]]; then
+        local dir="$(x_dir)/$1"
+        readme="$dir/README.md"
+        "$ZET_EDITOR" "$readme"
+        cd "$dir" &>/dev/null
+        [[ -s "$dir/README.md" ]] || return 1
+        line="$(head -1 "$dir/README.md" | sed 's/^# //') (Updated: $(date -u))"
+        test -n "$line"
+        echo "Committing: $line"
+        $(x_push $line)
+    fi
+}
+
+## exits zk
+x_exit() {
+  echo "Exiting zet..."
+  exit 0
+}
+
+## show all zettels containing a matching tag; --nocolor option to avoid colors
+x_show() {
+    local tag="#$1"
+    local dir="$(x_dir)"
+    if [[ "$1" == "--nocolor" ]]; then
+        tag="#$2"
+        read -r a y x <<< $(echo "" "" "")
+    fi
+    readarray -t directories <<< "$(x_all)"
+    for i in "${directories[@]}"; do
+        readarray -t tags <<< "$(tail -1 $dir/$i/README.md | tr ' ' '\n')"
+        for j in "${tags[@]}"; do
+            if [[ $j == $tag ]]; then
+                echo -ne "$a$i$x - $y$(head -1 "$dir/$i/README.md" | sed 's/^# //')$x\n" 
+            fi
+        done
+    done 
+}
+
+## returns the current UTC date time as YYYYMMDDHHMM
+x_isomin() { date -u +%Y%m%d%H%M ; }
+
+## echoes the markdown to link a given zettel
+## Easy to get an id  -->  zet link $(zet show --nocolor foo | grep bar | sed 's/\s.*//')
+x_link() {
+    readarray -t directories <<< "$(x_all)"
+    if [[ " ${directories[*]} " =~ " $1 " ]]; then
+        link="[$1](../$1) - $(head -1 "$(x_dir)/$1/README.md" | sed 's/^# //')" 
+        echo "$link"
+    fi
+}
+
+## post a zettelkasten link to twitter
+x_post() {
+    local rc
+    if [[ ! -f "$TWEEPY_CONF" ]]; then
+      x_configure_tweepy
+      rc="$?"
+      [[ "$rc" == 0 ]] || x_exit
+      echo "MADE IT"
+      exit
+    fi
+    readarray -t directories <<< "$(x_all)"
+    if [[ " ${directories[*]} " =~ " $1 " ]]; then
+        local zettel post hashtags
+        zettel="$(x_dir)/$1/README.md"
+        post=$(head -1 $zettel | sed 's/^# //')
+        hashtags=$(tail -1 $zettel)
+        url="https://github.com/michaelarn0ld/zettelkasten-public/tree/main/$1"
+        ./util/tweet "$post" "$hashtags" "$url"
+    fi
+}
+
+## pulls zettelkasten from respective gitlab repo
+x_pull() {
+    local dir="$(x_dir)"
+    cd "$dir" &>/dev/null
+    git pull
+}
+
+## pushes zettelkasten changes to respective gitlab repo
+x_push() {
+    local dir="$(x_dir)"
+    cd "$dir" &>/dev/null
+    git add -A "$dir" &>/dev/null
+    if [[ -n "$*" ]]; then
+        git commit -m "$*" &>/dev/null
+    else
+        git commit -m "Updated Zettelkasten: $(date -u)" &>/dev/null
+    fi
+    git push
+}
+
+## reads the contents of a given zettel
+x_read() {
+    readarray -t directories <<< "$(x_all)"
+    if [[ " ${directories[*]} " =~ " $1 " ]]; then
+        $ZET_EDITOR -R "$(x_dir)/$1/README.md"
+        # Another option; pros: safer, cons: annoying (q! instead of q to quit)
+        # $ZET_EDITOR - < "$(x_dir/$1/README.md)"
+    fi
+}
+
+## adds tag to the registry if it is not already there
+x_register() {
+    local dir registry
+    dir="$(x_dir)"
+    registry="$dir/REGISTRY.md"
+    readarray -t all_tags <<< "$(x_topics | tr -d '1. #')"
+    if [[ ! " ${all_tags[*]} " =~ " $1 " ]]; then
+        echo "1. #$1" >> $registry
+    fi
+}
+
+## returns all tags from a given zettel
+x_tags(){
+    local dir readme
+    dir="$(x_dir)/$1"
+    readme="$dir/README.md"
+    tail -1 $readme
+}
+
+## returns all tags from REGISTRY.md
+x_topics() {
+    local dir registry
+    dir="$(x_dir)"
+    registry="$dir/REGISTRY.md"
+    sort -o "$registry"{,}
+    cat $registry
+}
+
+## show all zettels to the user in a friendly format
+x_zk() {
+    local dir="$(x_dir)"
+    for i in $(ls $dir | grep -v '.md'); do
+        local dir="$(x_dir)/$i"
+        readme="$dir/README.md"
+        msg=$(cat "$readme" | head -n 1 | sed 's/^#\s//')
+        tags=$(x_tags $i)
+        year="${i:0:4}"
+        month="${i:4:2}"
+        day="${i:6:2}"
+        echo -ne "$a$month/$day/$year$x - $y$msg$x ($p$i$x)\n"
+    done | less -r 
+}
+
+
+# -----------------------------------------
+# ---- handling command line args ---------
+# -----------------------------------------
+
+## parse the zet file and store the commands
+while IFS= read -r line; do
+    [[ $line =~ ^declare\ -f\ x_ ]] || continue
+    COMMANDS+=( "${line##declare -f x_}" )
+done < <(declare -F)
+mapfile -t COMMANDS < \
+    <(LC_COLLATE=C sort < <(printf "%s\n" "${COMMANDS[@]}"))
+
+## check if there is command given
+if [[ -n "$1" ]]; then
+
+    ## shows usage of zet
+    if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+        echo "
+        ------------------------------------------------------------------------
+        commands:
+        ------------------------------------------------------------------------
+        all                    :    lists all zettels
+        create <<zet>>         :    creates a new zettel
+        dir                    :    gets session directory 
+        edit <<zet_id>>        :    make changes to a zettel & push it
+        isomin                 :    returns the datetime as YYYYMMDDHHMM (UTC)
+        link <<zet_id>>        :    echoes the markdown to link to a zettel
+        post <<zet_id>>>       :    tweets zettelkasten title, tags, link
+        pull                   :    pulls zettelkasten from gitlab repo
+        push <<message>>       :    commits zettelkasten to gitlab repo
+        read <<zet_id>>        :    prints the contents of a zettel
+        register <<zet_tag>>   :    adds a tag to the registry if it's not there 
+        show <<zet_tag>        :    shows all zettels that have a matching tag
+        tags <<zet_id>>        :    returns all tags associated with zettel
+        topics                 :    returns all tags in the registry
+        zk                     :    show all zettels in friendly format
+
+        ------------------------------------------------------------------------
+        options:
+        ------------------------------------------------------------------------
+        -p || --private        :    sets default session directory to "PRIVATE"
+        "
+        exit 0
+    fi
+
+    ## sets the session directory to $PRIVATE else it defaults to $PUBLIC
+    if [[ "$1" == "--private" || "$1" == "-p" ]]; then
+        OPTION=$PRIVATE
+        shift 1
+    fi
+
+    ## no valid options were given, check and see if the arg is a valid command
+    declare CMD="$1"; shift
+
+    ## command is not valid, reccomend to look at usage
+    if [[ ! "${COMMANDS[*]}" =~ "$CMD" ]]; then
+        echo "invalid usage: -h or --help for help"
+        exit 0
+    fi
+
+    for c in "${COMMANDS[@]}"; do
+        ## excecute proper x_command()
+        if [[ $c == "$CMD" ]]; then
+            "x_$CMD" "$@"
+            exit $?
+        fi
+    done
+fi
+
+## no command provided, reccomend to look at usage
+echo "invalid usage: -h or --help for help"
