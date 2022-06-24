@@ -1,5 +1,4 @@
-#!/bin/bash
-
+#!/opt/homebrew/bin/bash
 
 (( BASH_VERSINFO[0] < 4 )) && echo "Bash 4+ required." && exit 1
 
