@@ -37,8 +37,8 @@ def main():
         keys = get_auth_keys()
         tweet(keys, msg)
         return 0
-    except:
-        print("FAILED TO TWEET...")
+    except Exception as e:
+        print(f'FAILED TO TWEET WITH: {e}...')
         return 1
 
 if __name__ == "__main__":
