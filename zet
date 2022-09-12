@@ -12,7 +12,7 @@ ZET_EDITOR=$EDITOR
 PUBLIC=$ZETDIR
 PRIVATE=$ZETDIR_PRIVATE
 OPTION=$PUBLIC
-BASE_DIR="/home/michael/Public/repos/github.com/michaelarn0ld/zet"
+BASE_DIR=$ZET_SCRIPT_DIR
 TWEEPY_CONF="$BASE_DIR/util/tweepy.conf"
 
 
