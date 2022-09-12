@@ -14,7 +14,7 @@ PRIVATE=$ZETDIR_PRIVATE
 OPTION=$PUBLIC
 BASE_DIR=$ZET_SCRIPT_DIR
 TWEEPY_CONF="$BASE_DIR/util/tweepy.conf"
-
+GITHUB="$GITHUB_URL/$(basename $PUBLIC)"
 
 r='\e[31m' # red
 g='\e[32m' # green
@@ -212,7 +212,8 @@ x_push() {
 x_read() {
     readarray -t directories <<< "$(x_all)"
     if [[ " ${directories[*]} " =~ " $1 " ]]; then
-        $ZET_EDITOR -R "$(x_dir)/$1/README.md"
+        # $ZET_EDITOR -R "$(x_dir)/$1/README.md"
+	xdg-open $GITHUB/tree/main/$1 2> /dev/null
         # Another option; pros: safer, cons: annoying (q! instead of q to quit)
         # $ZET_EDITOR - < "$(x_dir/$1/README.md)"
     fi
