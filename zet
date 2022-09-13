@@ -12,9 +12,9 @@ ZET_EDITOR=$EDITOR
 PUBLIC=$ZETDIR
 PRIVATE=$ZETDIR_PRIVATE
 OPTION=$PUBLIC
-BASE_DIR="/home/michael/Public/repos/github.com/michaelarn0ld/zet"
+BASE_DIR=$ZET_SCRIPT_DIR
 TWEEPY_CONF="$BASE_DIR/util/tweepy.conf"
-
+GIT_HOST="$GITHUB_URL/$(basename $PUBLIC)"
 
 r='\e[31m' # red
 g='\e[32m' # green
@@ -82,7 +82,7 @@ x_configure_tweepy() {
   done
 }
 
-## creates a new zettel in the session directory & pushes to git repo after wq
+## creates a new zettel in the session directory & pushes to remote repo after wq
 x_create() {
     if [[ "$#" -lt 1 ]]; then
         exit 1;
@@ -115,7 +115,7 @@ x_dir() {
     mkdir -p "$dir" && echo "$dir"
 }
 
-## edits a zettel and pushes it to respective gitlab repo
+## edits a zettel and pushes it to respective remote repo
 x_edit() {
     readarray -t directories <<< "$(x_all)"
     if [[ " ${directories[*]} " =~ " $1 " ]]; then
@@ -183,19 +183,19 @@ x_post() {
         zettel="$(x_dir)/$1/README.md"
         post=$(head -1 $zettel | sed 's/^# //')
         hashtags=$(tail -1 $zettel)
-        url="https://github.com/michaelarn0ld/zettelkasten-public/tree/main/$1"
+        url="$GIT_HOST/tree/main/$1"
         $BASE_DIR/util/tweet "$post" "$hashtags" "$url"
     fi
 }
 
-## pulls zettelkasten from respective gitlab repo
+## pulls zettelkasten from respective remote repo
 x_pull() {
     local dir="$(x_dir)"
     cd "$dir" &>/dev/null
     git pull
 }
 
-## pushes zettelkasten changes to respective gitlab repo
+## pushes zettelkasten changes to respective remote repo
 x_push() {
     local dir="$(x_dir)"
     cd "$dir" &>/dev/null
@@ -212,7 +212,8 @@ x_push() {
 x_read() {
     readarray -t directories <<< "$(x_all)"
     if [[ " ${directories[*]} " =~ " $1 " ]]; then
-        $ZET_EDITOR -R "$(x_dir)/$1/README.md"
+        # $ZET_EDITOR -R "$(x_dir)/$1/README.md"
+	xdg-open $GIT_HOST/tree/main/$1 2> /dev/null
         # Another option; pros: safer, cons: annoying (q! instead of q to quit)
         # $ZET_EDITOR - < "$(x_dir/$1/README.md)"
     fi
@@ -290,8 +291,8 @@ if [[ -n "$1" ]]; then
         isomin                 :    returns the datetime as YYYYMMDDHHMM (UTC)
         link <<zet_id>>        :    echoes the markdown to link to a zettel
         post <<zet_id>>>       :    tweets zettelkasten title, tags, link
-        pull                   :    pulls zettelkasten from gitlab repo
-        push <<message>>       :    commits zettelkasten to gitlab repo
+        pull                   :    pulls zettelkasten from remote repo
+        push <<message>>       :    commits zettelkasten to remote repo
         read <<zet_id>>        :    prints the contents of a zettel
         register <<zet_tag>>   :    adds a tag to the registry if it's not there 
         show <<zet_tag>        :    shows all zettels that have a matching tag
@@ -307,9 +308,11 @@ if [[ -n "$1" ]]; then
         exit 0
     fi
 
+
     ## sets the session directory to $PRIVATE else it defaults to $PUBLIC
     if [[ "$1" == "--private" || "$1" == "-p" ]]; then
         OPTION=$PRIVATE
+	GIT_HOST="$GITHUB_URL/$(basename $PRIVATE)"
         shift 1
     fi
 
