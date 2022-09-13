@@ -258,7 +258,7 @@ x_zk() {
         year="${i:0:4}"
         month="${i:4:2}"
         day="${i:6:2}"
-        echo -ne "$a$month/$day/$year$x - $y$msg$x ($p$i$x)\n"
+        echo -ne "$a$month/$day/$year$x - $y$msg$x ($p$i$x) $g$tags$x\n"
     done | less -r 
 }
 
