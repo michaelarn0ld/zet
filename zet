@@ -242,7 +242,7 @@ x_topics() {
     dir="$(x_dir)"
     registry="$dir/REGISTRY.md"
     sort -o "$registry"{,}
-    cat $registry
+    cat $registry | sed 's/^1.//g' | nl
 }
 
 ## show all zettels to the user in a friendly format
