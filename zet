@@ -35,7 +35,7 @@ z='\e[30m' # black
 ## returns all zettels from the session directory
 x_all() {
     local dir="$(x_dir)"
-    ls $dir | grep -v '.md'
+    ls $dir | grep -Ev '.md|.json'
 }
 
 ## configures twitter api for python
