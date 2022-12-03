@@ -15,6 +15,7 @@ OPTION=$PUBLIC
 BASE_DIR=$ZET_SCRIPT_DIR
 TWEEPY_CONF="$BASE_DIR/util/tweepy.conf"
 GIT_HOST="$GITHUB_URL/$(basename $PUBLIC)"
+AWS_CREDS="$HOME/.aws/credentials"
 
 r='\e[31m' # red
 g='\e[32m' # green
@@ -171,12 +172,6 @@ x_link() {
     fi
 }
 
-## creates a tag -> zettels map and stores in a json file
-x_zettel_mapping() {
-    $BASE_DIR/util/map_tag_zettel $OPTION
-    # TODO: UPLOAD JSON FILE FROM THE ZETTELKASTEN TO AWS S3
-}
-
 ## post a zettelkasten link to twitter
 x_post() {
     local rc
@@ -268,6 +263,16 @@ x_zk() {
         day="${i:6:2}"
         echo -ne "$a$month/$day/$year$x - $y$msg$x ($p$i$x)\n"
     done | less -r 
+}
+
+## creates a tag -> zettels map and stores in a json file
+x_zettel_mapping() {
+    local s3_bucket="s3://zettel-tag-mappings"
+    local mappings_json="$OPTION/MAPPINGS.json"
+    $BASE_DIR/util/map_tag_zettel $OPTION
+    if [ -f "$AWS_CREDS" ]; then
+        aws s3 cp "$mappings_json" "$s3_bucket" &> /dev/null
+    fi
 }
 
 
