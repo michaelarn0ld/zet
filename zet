@@ -40,46 +40,46 @@ x_all() {
 
 ## configures twitter api for python
 x_configure_tweepy() {
-  read -p "Would you like to configure your zettelkasten for use with twitter? (y/n): " configure
-  if [[ "$configure" == "n" || "$configure" == "N" ]]; then
-    return 1
-  fi
+    read -p "Would you like to configure your zettelkasten for use with twitter? (y/n): " configure
+    if [[ "$configure" == "n" || "$configure" == "N" ]]; then
+        return 1
+    fi
 
-  if [[ "$configure" != "y" && "$configure" != "Y" ]]; then
-    echo "ERROR: input must be (y/n)"
-    return 1
-  fi
-  printf "\n"
-
-  while true; do
-    echo "================================"
-    echo "Press CTRL+C at any time to exit"
-    echo "================================"
-    printf "\n"
-    read -p "Enter your consumer key: " consumer_key
-    read -p "Enter your consumer secret: " consumer_secret
-    read -p "Enter your access token: " access_token
-    read -p "Enter your access token secret: " access_token_secret
-    printf "\n"
-
-    printf "Current configurations:\nconsumer_key=%s\nconsumer_secret=%s\naccess_token=%s\naccess_token_secret=%s\n" "$consumer_key" "$consumer_secret" "$access_token" "$access_token_secret"
+    if [[ "$configure" != "y" && "$configure" != "Y" ]]; then
+        echo "ERROR: input must be (y/n)"
+        return 1
+    fi
     printf "\n"
 
     while true; do
-      read -p "Satisfied with current configuration? (y/n): " confirm
+        echo "================================"
+        echo "Press CTRL+C at any time to exit"
+        echo "================================"
+        printf "\n"
+        read -p "Enter your consumer key: " consumer_key
+        read -p "Enter your consumer secret: " consumer_secret
+        read -p "Enter your access token: " access_token
+        read -p "Enter your access token secret: " access_token_secret
+        printf "\n"
 
-      if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
-        echo -ne "consumer_key=%s\nconsumer_secret=%s\naccess_token=%s\naccess_token_secret=%s\n" "$consumer_key" "$consumer_secret" "$access_token" "$access_token_secret" > $TWEEPY_CONF
-        return 0
-      fi
+        printf "Current configurations:\nconsumer_key=%s\nconsumer_secret=%s\naccess_token=%s\naccess_token_secret=%s\n" "$consumer_key" "$consumer_secret" "$access_token" "$access_token_secret"
+        printf "\n"
 
-      if [[ "$confirm" == "n" || "$confirm" == "N" ]]; then
-        break
-      fi
-      echo "WARN: input must be (y/n)"
+        while true; do
+            read -p "Satisfied with current configuration? (y/n): " confirm
+
+            if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+                echo -ne "consumer_key=%s\nconsumer_secret=%s\naccess_token=%s\naccess_token_secret=%s\n" "$consumer_key" "$consumer_secret" "$access_token" "$access_token_secret" > $TWEEPY_CONF
+                return 0
+            fi
+
+            if [[ "$confirm" == "n" || "$confirm" == "N" ]]; then
+                break
+            fi
+            echo "WARN: input must be (y/n)"
+        done
+        printf "\n\n"
     done
-    printf "\n\n"
-  done
 }
 
 ## creates a new zettel in the session directory & pushes to remote repo after wq
@@ -107,6 +107,7 @@ x_create() {
     done
     sort -o "$(x_dir)/REGISTRY.md"{,}
     $(x_push $line)
+    $(x_zettel_mapping)
 }
 
 ## sets the session directory to either the public or private zk
@@ -128,6 +129,7 @@ x_edit() {
         test -n "$line"
         echo "Committing: $line"
         $(x_push $line)
+        $(x_zettel_mapping)
     fi
 }
 
@@ -167,6 +169,12 @@ x_link() {
         link="[$1](../$1) - $(head -1 "$(x_dir)/$1/README.md" | sed 's/^# //')" 
         echo "$link"
     fi
+}
+
+## creates a tag -> zettels map and stores in a json file
+x_zettel_mapping() {
+    $BASE_DIR/util/map_tag_zettel $OPTION
+    # TODO: UPLOAD JSON FILE FROM THE ZETTELKASTEN TO AWS S3
 }
 
 ## post a zettelkasten link to twitter
