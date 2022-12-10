@@ -59,7 +59,7 @@ def get_metadata(tag, zettelkasten):
   zettel_files = [(zettel.name, f'{zettelkasten}/{zettel.name}/README.md') for zettel in os.scandir(zettelkasten) if zettel.name[0].isdigit()]
   for zettel in zettel_files:
     zettel_id, zettel_file = zettel
-    tag_cmd = f'tac {zettel_file} | egrep -m 1 . | grep {tag}'
+    tag_cmd = f'tail -r {zettel_file} | egrep -m 1 . | grep {tag}'
     try:
       tag_out = subprocess.run(tag_cmd, shell=True, stdout=subprocess.DEVNULL)
       if tag_out.returncode == 0:
