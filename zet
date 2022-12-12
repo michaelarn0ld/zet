@@ -105,7 +105,7 @@ x_create() {
     for j in "${file_tags[@]}"; do
         $(x_register $j)
     done
-    sort -o "$(x_dir)/REGISTRY.md"{,}
+    sort -uo "$(x_dir)/REGISTRY.md"{,}
     $(x_push $line)
     $(x_zettel_mapping)
 }
@@ -245,7 +245,7 @@ x_topics() {
     local dir registry
     dir="$(x_dir)"
     registry="$dir/REGISTRY.md"
-    sort -o "$registry"{,}
+    sort -uo "$registry"{,}
     cat $registry | sed 's/^1.//g' | nl
 }
 
