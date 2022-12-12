@@ -59,13 +59,14 @@ def get_metadata(tag, zettelkasten):
   zettel_files = [(zettel.name, f'{zettelkasten}/{zettel.name}/README.md') for zettel in os.scandir(zettelkasten) if zettel.name[0].isdigit()]
   for zettel in zettel_files:
     zettel_id, zettel_file = zettel
-    tag_cmd = f'tac {zettel_file} | egrep -m 1 . | grep {tag}'
+    tag_cmd = f'tac {zettel_file} | egrep -m 1 . | grep -w {tag}'
     try:
       tag_out = subprocess.run(tag_cmd, shell=True, stdout=subprocess.DEVNULL)
       if tag_out.returncode == 0:
         title_cmd = f'cat {zettel_file} | egrep -m 1 .'
         title_out = subprocess.run(title_cmd, shell=True, stdout=subprocess.PIPE) 
         title = f'STARTTITLE_{title_out.stdout.decode().strip()}_ENDTITLE'
+        print(f'{tag}: {title}')
         zettel_tag.add_zettel(Zettel(zettel_id, title))
     except:
       pass
