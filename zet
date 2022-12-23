@@ -255,7 +255,7 @@ x_topics() {
 ## show all zettels to the user in a friendly format
 x_zk() {
     local dir="$(x_dir)"
-    for i in $(ls $dir | grep -v '.md'); do
+    for i in $(ls $dir | grep -Ev '.md|.json'); do
         local dir="$(x_dir)/$i"
         readme="$dir/README.md"
         msg=$(cat "$readme" | head -n 1 | sed 's/^#\s//')
