@@ -99,15 +99,16 @@ x_create() {
     [[ -s "$dir/README.md" ]] || return 1
     line=$(head -1 "$dir/README.md" | sed 's/^# //')
     test -n "$line"
-    echo "Committing: $line"
     # parse the tags of the zet we just made and try to add them to registry
     readarray -t file_tags <<< "$(x_tags $datetime | tr -d '#' | tr ' ' '\n')"
     for j in "${file_tags[@]}"; do
         $(x_register $j)
     done
     sort -uo "$(x_dir)/REGISTRY.md"{,}
-    $(x_push $line)
+    echo "Updating Zettel Mappings..."
     $(x_zettel_mapping)
+    echo "Committing: $line"
+    $(x_push $line)
 }
 
 ## sets the session directory to either the public or private zk
@@ -127,9 +128,10 @@ x_edit() {
         [[ -s "$dir/README.md" ]] || return 1
         line="$(head -1 "$dir/README.md" | sed 's/^# //') (Updated: $(date -u))"
         test -n "$line"
+        echo "Updating Zettel Mappings..."
+        $(x_zettel_mapping)
         echo "Committing: $line"
         $(x_push $line)
-        $(x_zettel_mapping)
     fi
 }
 
