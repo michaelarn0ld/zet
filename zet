@@ -266,6 +266,7 @@ x_zk() {
 
 ## creates a tag -> zettels map and stores in a json file
 x_zettel_mapping() {
+    if [ "$OPTION" != "$PUBLIC" ]; then return; fi
     local s3_bucket="s3://zettel-tag-mappings"
     local mappings_json="$OPTION/MAPPINGS.json"
     $BASE_DIR/util/map_tag_zettel $OPTION
