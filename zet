@@ -252,6 +252,13 @@ x_topics() {
     cat $registry | sed 's/^1.//g' | nl
 }
 
+## updates zettel whitelist
+x_whitelist() {
+    if [ -f "$AWS_CREDS" ]; then
+        $BASE_DIR/util/modify_zettel_whitelist
+    fi
+}
+
 ## show all zettels to the user in a friendly format
 x_zk() {
     local dir="$(x_dir)"
@@ -314,6 +321,7 @@ if [[ -n "$1" ]]; then
         show <<zet_tag>        :    shows all zettels that have a matching tag
         tags <<zet_id>>        :    returns all tags associated with zettel
         topics                 :    returns all tags in the registry
+        whitelist              :    changes the whitelisted zettels on DynamoDB
         zk                     :    show all zettels in friendly format
 
         ------------------------------------------------------------------------
