@@ -107,7 +107,8 @@ x_create() {
     done
     sort -uo "$(x_dir)/REGISTRY.md"{,}
     echo "Updating Zettel Mappings..."
-    $(x_zettel_mapping)
+    x_zettel_mapping
+    x_zettel_repository "$datetime"
     echo "Committing: $line"
     $(x_push $line)
 }
@@ -130,7 +131,8 @@ x_edit() {
         line="$(head -1 "$dir/README.md" | sed 's/^# //') (Updated: $(date -u))"
         test -n "$line"
         echo "Updating Zettel Mappings..."
-        $(x_zettel_mapping)
+        x_zettel_mapping
+        x_zettel_repository "$1"
         echo "Committing: $line"
         $(x_push $line)
     fi
@@ -281,10 +283,22 @@ x_zettel_mapping() {
     local mappings_json="$OPTION/MAPPINGS.json"
     $BASE_DIR/util/map_tag_zettel $OPTION
     if [ -f "$AWS_CREDS" ]; then
+        local msg="Pushing MAPPINGS.json to AWS S3"
+        echo "$msg"
         aws s3 cp "$mappings_json" "$s3_bucket" &> /dev/null
     fi
 }
 
+## Uploads or updates the zettel to s3
+x_zettel_repository() {
+    if [ "$OPTION" != "$PUBLIC" ]; then return; fi
+    local s3_bucket="s3://zettels-repository"
+    if [ -f "$AWS_CREDS" ]; then
+        local msg="Pushing Zettel(id=$1) to AWS S3"
+        echo "$msg"
+        aws s3 cp "$OPTION/$1/README.md" "$s3_bucket/$1.md" &> /dev/null
+    fi
+}
 
 # -----------------------------------------
 # ---- handling command line args ---------
