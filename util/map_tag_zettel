@@ -25,11 +25,23 @@ class ZettelTag:
     self.tag = tag
     self.zettels = []
 
+  def insert_sorted(self, zettel):
+    ele = zettel.zettel_id
+    seq = self.zettels
+    idx = 0
+    if not seq or ele > seq[-1].zettel_id:
+      seq.append(zettel)
+    else:
+      while ele > seq[idx].zettel_id and idx < len(seq):
+        idx += 1
+      seq.insert(idx, zettel)
+
   def add_zettel(self, zettel):
-    self.zettels.append(zettel)
+    self.insert_sorted(zettel)
   
   def repr_json(self):
     return dict(tag=self.tag, zettels=self.zettels)
+
 
 
 class Zettel:
