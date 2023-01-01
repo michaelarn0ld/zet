@@ -106,10 +106,10 @@ x_create() {
     done
     sort -uo "$(x_dir)/REGISTRY.md"{,}
     echo "Updating Zettel Mappings..."
-    x_zettel_mapping
-    x_zettel_repository "$datetime"
     echo "Committing: $line"
     $(x_push $line)
+    x_zettel_mapping
+    x_zettel_repository "$datetime"
 }
 
 ## sets the session directory to either the public or private zk
@@ -130,10 +130,10 @@ x_edit() {
         line="$(head -1 "$dir/README.md" | sed 's/^# //') (Updated: $(date -u))"
         test -n "$line"
         echo "Updating Zettel Mappings..."
-        x_zettel_mapping
-        x_zettel_repository "$1"
         echo "Committing: $line"
         $(x_push $line)
+        x_zettel_mapping
+        x_zettel_repository "$1"
     fi
 }
 
