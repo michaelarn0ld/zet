@@ -282,10 +282,15 @@ x_zettel_mapping() {
     local s3_bucket="s3://zettel-tag-mappings"
     local mappings_json="$OPTION/MAPPINGS.json"
     $BASE_DIR/util/map_tag_zettel $OPTION
+    local git_head=$(jq .git_head $OPTION/MAPPINGS.json -Mr)
+    echo "Git head is now at: $git_head"
     if [ -f "$AWS_CREDS" ]; then
         local msg="Pushing MAPPINGS.json to AWS S3"
         echo "$msg"
         aws s3 cp "$mappings_json" "$s3_bucket" &> /dev/null
+        msg="Pushing git_head to AWS SSM"
+        echo "$msg"
+        aws ssm put-parameter --name git_head --value $git_head --overwrite &> /dev/null
     fi
 }
 
