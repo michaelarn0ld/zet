@@ -105,9 +105,9 @@ x_create() {
         $(x_register $j)
     done
     sort -uo "$(x_dir)/REGISTRY.md"{,}
-    echo "Updating Zettel Mappings..."
     echo "Committing: $line"
     $(x_push $line)
+    echo "Updating Zettel Mappings..."
     x_zettel_mapping
     x_zettel_repository "$datetime"
 }
@@ -129,9 +129,9 @@ x_edit() {
         [[ -s "$dir/README.md" ]] || return 1
         line="$(head -1 "$dir/README.md" | sed 's/^# //') (Updated: $(date -u))"
         test -n "$line"
-        echo "Updating Zettel Mappings..."
         echo "Committing: $line"
         $(x_push $line)
+        echo "Updating Zettel Mappings..."
         x_zettel_mapping
         x_zettel_repository "$1"
     fi
