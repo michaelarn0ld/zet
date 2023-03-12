@@ -1,5 +1,9 @@
 # zet
 ----
+This branch of Zet can be used if you want to maintain notes only locally. The
+functionality of `-p` and some of the other features (AWS persistance) have
+been removed here.
+
 This has been inspired and influenced by [Rob Muhlestein](https://youtube.com/rwxrob).
 
 Zet is a command line tool for creating and maintaining a personal Zettelkasten
@@ -42,18 +46,13 @@ zet [OPTION] [COMMAND] [ARGS...]
 |   show [ZETTEL_TAG]        |   prints all zettels that have a matching tag                  |
 |   isomin                   |   prints the current UTC datetime (YYYYMMDDHHMM)               |
 |   link [ZETTEL_ID]         |   prints the markdown needed to link to a zettel               |
-|   post [ZETTEL_ID]         |   tweets a zettelkasten title, tags, and url                   |
-|   pull                     |   pulls the zettelkasten from its Git remote repository        |
-|   push [MESSAGE]           |   pushes the local zettelkasten to its Git remote repository   |
 |   read [ZETTEL_ID]         |   prints the contents of a zettel                              |
 |   register [ZETTEL_TAG]    |   adds a tag to the registry if it is not there                |
 |   tags [ZETTEL_ID]         |   prints all tags associated with a zettel                     |
-|   whitelist                |   modify the zettel whitelist (rendered on michaelarnold.io)   |
 |   zk                       |   show all zettels in friendly format                          |
 
 ----
 |   Option                   |   Usage                                                        |
 |   :-:                      |   -                                                            |
 |   -h, --help               |   shows usages of zet                                          |
-|   -p, --private            |   changes default session directory from PUBLIC to PRIVATE     |
 

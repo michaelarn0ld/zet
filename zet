@@ -10,12 +10,10 @@
 
 ZET_EDITOR=$EDITOR
 PUBLIC=$ZETDIR
-PRIVATE=$ZETDIR_PRIVATE
 OPTION=$PUBLIC
 BASE_DIR=$ZET_SCRIPT_DIR
 TWEEPY_CONF="$BASE_DIR/util/tweepy.conf"
 GIT_HOST="$GITHUB_URL/$(basename $PUBLIC)"
-AWS_CREDS="$HOME/.aws/credentials"
 
 r='\e[31m' # red
 g='\e[32m' # green
@@ -39,51 +37,7 @@ x_all() {
     ls $dir | grep -Ev '.md|.json'
 }
 
-## configures twitter api for python
-x_configure_tweepy() {
-    read -p "Would you like to configure your zettelkasten for use with twitter? (y/n): " configure
-    if [[ "$configure" == "n" || "$configure" == "N" ]]; then
-        return 1
-    fi
-
-    if [[ "$configure" != "y" && "$configure" != "Y" ]]; then
-        echo "ERROR: input must be (y/n)"
-        return 1
-    fi
-    printf "\n"
-
-    while true; do
-        echo "================================"
-        echo "Press CTRL+C at any time to exit"
-        echo "================================"
-        printf "\n"
-        read -p "Enter your consumer key: " consumer_key
-        read -p "Enter your consumer secret: " consumer_secret
-        read -p "Enter your access token: " access_token
-        read -p "Enter your access token secret: " access_token_secret
-        printf "\n"
-
-        printf "Current configurations:\nconsumer_key=%s\nconsumer_secret=%s\naccess_token=%s\naccess_token_secret=%s\n" "$consumer_key" "$consumer_secret" "$access_token" "$access_token_secret"
-        printf "\n"
-
-        while true; do
-            read -p "Satisfied with current configuration? (y/n): " confirm
-
-            if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
-                echo -ne "consumer_key=%s\nconsumer_secret=%s\naccess_token=%s\naccess_token_secret=%s\n" "$consumer_key" "$consumer_secret" "$access_token" "$access_token_secret" > $TWEEPY_CONF
-                return 0
-            fi
-
-            if [[ "$confirm" == "n" || "$confirm" == "N" ]]; then
-                break
-            fi
-            echo "WARN: input must be (y/n)"
-        done
-        printf "\n\n"
-    done
-}
-
-## creates a new zettel in the session directory & pushes to remote repo after wq
+## creates a new zettel in the session directory & commits to remote repo after wq
 x_create() {
     if [[ "$#" -lt 1 ]]; then
         exit 1;
@@ -107,10 +61,8 @@ x_create() {
     done
     sort -uo "$(x_dir)/REGISTRY.md"{,}
     echo "Committing: $line"
-    $(x_push $line)
+    $(x_commit $line)
     echo "Updating Zettel Mappings..."
-    x_zettel_mapping
-    x_zettel_repository "$datetime"
 }
 
 ## sets the session directory to either the public or private zk
@@ -119,7 +71,7 @@ x_dir() {
     mkdir -p "$dir" && echo "$dir"
 }
 
-## edits a zettel and pushes it to respective remote repo
+## edits a zettel and commits it to respective remote repo
 x_edit() {
     readarray -t directories <<< "$(x_all)"
     if [[ " ${directories[*]} " =~ " $1 " ]]; then
@@ -131,10 +83,8 @@ x_edit() {
         line="$(head -1 "$dir/README.md" | sed 's/^# //') (Updated: $(date -u))"
         test -n "$line"
         echo "Committing: $line"
-        $(x_push $line)
+        $(x_commit $line)
         echo "Updating Zettel Mappings..."
-        x_zettel_mapping
-        x_zettel_repository "$1"
     fi
 }
 
@@ -176,34 +126,8 @@ x_link() {
     fi
 }
 
-## post a zettelkasten link to twitter
-x_post() {
-    local rc
-    if [[ ! -f "$TWEEPY_CONF" ]]; then
-      x_configure_tweepy
-      rc="$?"
-      [[ "$rc" == 0 ]] || x_exit
-    fi
-    readarray -t directories <<< "$(x_all)"
-    if [[ " ${directories[*]} " =~ " $1 " ]]; then
-        local zettel post hashtags
-        zettel="$(x_dir)/$1/README.md"
-        post=$(head -1 $zettel | sed 's/^# //')
-        hashtags=$(tail -1 $zettel)
-        url="$GIT_HOST/tree/main/$1"
-        $BASE_DIR/util/tweet "$post" "$hashtags" "$url"
-    fi
-}
-
-## pulls zettelkasten from respective remote repo
-x_pull() {
-    local dir="$(x_dir)"
-    cd "$dir" &>/dev/null
-    git pull
-}
-
-## pushes zettelkasten changes to respective remote repo
-x_push() {
+## commits zettelkasten changes to respective remote repo
+x_commit() {
     local dir="$(x_dir)"
     cd "$dir" &>/dev/null
     git add -A "$dir" &>/dev/null
@@ -212,7 +136,6 @@ x_push() {
     else
         git commit -m "Updated Zettelkasten: $(date -u)" &>/dev/null
     fi
-    git push
 }
 
 ## reads the contents of a given zettel
@@ -254,13 +177,6 @@ x_topics() {
     cat $registry | sed 's/^1.//g' | nl
 }
 
-## updates zettel whitelist
-x_whitelist() {
-    if [ -f "$AWS_CREDS" ]; then
-        $BASE_DIR/util/modify_zettel_whitelist
-    fi
-}
-
 ## show all zettels to the user in a friendly format
 x_zk() {
     local dir="$(x_dir)"
@@ -274,35 +190,6 @@ x_zk() {
         day="${i:6:2}"
         echo -ne "$a$month/$day/$year$x - $y$msg$x ($p$i$x)\n"
     done | less -r 
-}
-
-## creates a tag -> zettels map and stores in a json file
-x_zettel_mapping() {
-    if [ "$OPTION" != "$PUBLIC" ]; then return; fi
-    local s3_bucket="s3://zettel-tag-mappings"
-    local mappings_json="$OPTION/MAPPINGS.json"
-    $BASE_DIR/util/map_tag_zettel $OPTION
-    local git_head=$(jq .git_head $OPTION/MAPPINGS.json -Mr)
-    echo "Git head is now at: $git_head"
-    if [ -f "$AWS_CREDS" ]; then
-        local msg="Pushing MAPPINGS.json to AWS S3"
-        echo "$msg"
-        aws s3 cp "$mappings_json" "$s3_bucket" &> /dev/null
-        msg="Pushing git_head to AWS SSM"
-        echo "$msg"
-        aws ssm put-parameter --name git_head --value $git_head --overwrite &> /dev/null
-    fi
-}
-
-## Uploads or updates the zettel to s3
-x_zettel_repository() {
-    if [ "$OPTION" != "$PUBLIC" ]; then return; fi
-    local s3_bucket="s3://zettels-repository"
-    if [ -f "$AWS_CREDS" ]; then
-        local msg="Pushing Zettel(id=$1) to AWS S3"
-        echo "$msg"
-        aws s3 cp "$OPTION/$1/README.md" "$s3_bucket/$1.md" &> /dev/null
-    fi
 }
 
 # -----------------------------------------
@@ -329,34 +216,17 @@ if [[ -n "$1" ]]; then
         all                    :    lists all zettels
         create <<zet>>         :    creates a new zettel
         dir                    :    gets session directory 
-        edit <<zet_id>>        :    make changes to a zettel & push it
+        edit <<zet_id>>        :    make changes to a zettel & commit it
         isomin                 :    returns the datetime as YYYYMMDDHHMM (UTC)
         link <<zet_id>>        :    echoes the markdown to link to a zettel
-        post <<zet_id>>>       :    tweets zettelkasten title, tags, link
-        pull                   :    pulls zettelkasten from remote repo
-        push <<message>>       :    commits zettelkasten to remote repo
         read <<zet_id>>        :    prints the contents of a zettel
         register <<zet_tag>>   :    adds a tag to the registry if it's not there 
         show <<zet_tag>        :    shows all zettels that have a matching tag
         tags <<zet_id>>        :    returns all tags associated with zettel
         topics                 :    returns all tags in the registry
-        whitelist              :    changes the whitelisted zettels on DynamoDB
         zk                     :    show all zettels in friendly format
-
-        ------------------------------------------------------------------------
-        options:
-        ------------------------------------------------------------------------
-        -p || --private        :    sets default session directory to "PRIVATE"
         "
         exit 0
-    fi
-
-
-    ## sets the session directory to $PRIVATE else it defaults to $PUBLIC
-    if [[ "$1" == "--private" || "$1" == "-p" ]]; then
-        OPTION=$PRIVATE
-	GIT_HOST="$GITHUB_URL/$(basename $PRIVATE)"
-        shift 1
     fi
 
     ## no valid options were given, check and see if the arg is a valid command
