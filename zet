@@ -62,7 +62,6 @@ x_create() {
     sort -uo "$(x_dir)/REGISTRY.md"{,}
     echo "Committing: $line"
     $(x_commit $line)
-    echo "Updating Zettel Mappings..."
 }
 
 ## sets the session directory to either the public or private zk
@@ -84,7 +83,6 @@ x_edit() {
         test -n "$line"
         echo "Committing: $line"
         $(x_commit $line)
-        echo "Updating Zettel Mappings..."
     fi
 }
 
@@ -143,9 +141,8 @@ x_read() {
     readarray -t directories <<< "$(x_all)"
     if [[ " ${directories[*]} " =~ " $1 " ]]; then
         # $ZET_EDITOR -R "$(x_dir)/$1/README.md"
-	xdg-open $GIT_HOST/tree/main/$1 2> /dev/null
         # Another option; pros: safer, cons: annoying (q! instead of q to quit)
-        # $ZET_EDITOR - < "$(x_dir/$1/README.md)"
+        $ZET_EDITOR - < "$(x_dir/$1/README.md)"
     fi
 }
 
