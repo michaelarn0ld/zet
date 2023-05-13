@@ -96,13 +96,6 @@ x_create() {
     mkdir -p "$dir"
     printf "%s\n\n%s\n" "# $title" "## Tags" > "$readme"
     
-    # create zettel .properties
-    properties="$dir/.properties"
-    if [[ "$OPTION" == "$PUBLIC" ]]; then
-        printf "%s" "public" > "$properties"
-    elif [[ "$OPTION" == "$PRIVATE" ]]; then
-        printf "%s" "private" > "$properties"
-    fi
     ## open editor
     "$ZET_EDITOR" "$readme"
     cd "$dir" &>/dev/null
