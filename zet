@@ -114,7 +114,7 @@ x_create() {
 
 x_delete() {
 	if [[ ! "$#" == 1 ]]; then
-				echo "Requires exactly 1 argument."
+		echo "Requires exactly 1 argument."
         exit 1;
   fi
 	rm -rf "$(x_dir)/$*"
@@ -126,7 +126,7 @@ x_dir() {
 	mkdir -p "$dir" && echo "$dir"
 }
 
-## edits a zettel and pushes it to respective remote repo
+## edits a zettel and pushes it to public repo
 x_edit() {
     readarray -t directories <<< "$(x_all)"
     if [[ " ${directories[*]} " =~ " $1 " ]]; then
@@ -138,7 +138,7 @@ x_edit() {
         line="$(head -1 "$dir/README.md" | sed 's/^# //') (Updated: $(date -u))"
         test -n "$line"
         echo "Committing: $line"
-        $(x_push $line)
+       $(x_push $line)
     fi
 }
 
@@ -208,15 +208,20 @@ x_pull() {
 
 ## pushes zettelkasten changes to respective remote repo
 x_push() {
-    local dir="$(x_dir)"
-    cd "$dir" &>/dev/null
-    git add -A "$dir" &>/dev/null
-    if [[ -n "$*" ]]; then
-        git commit -m "$*" &>/dev/null
+    if [[ "$OPTION" == "$PUBLIC" ]]; then
+        local dir="$(x_dir)"
+        cd "$dir" &>/dev/null
+        git add -A "$dir" &>/dev/null
+        if [[ -n "$*" ]]; then
+            git commit -m "$*" &>/dev/null
+        else
+            git commit -m "Updated Zettelkasten: $(date -u)" &>/dev/null
+        fi
+        git push
     else
-        git commit -m "Updated Zettelkasten: $(date -u)" &>/dev/null
+        echo 'echo Your private zettel was stashed away.'
     fi
-    git push
+
 }
 
 ## reads the contents of a given zettel
