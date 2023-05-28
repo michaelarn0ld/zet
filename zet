@@ -236,6 +236,19 @@ x_register() {
     fi
 }
 
+## Sync zettels
+x_s3_sync() {
+    if [ "$OPTION" != "$PUBLIC" ]; then return; fi
+    local s3_bucket="s3://zettels-repository"
+    if [ -f "$AWS_CREDS" ]; then
+        for file_path in $OPTION/*; do
+          local file=$(basename ${file_path})
+          if ! [[ "$file" =~ ^[0-9] ]]; then continue; fi
+          aws s3 cp $file_path/README.md $s3_bucket/$file.md
+        done
+    fi
+}
+
 ## returns all tags from a given zettel
 x_tags(){
     local dir readme
@@ -336,6 +349,7 @@ if [[ -n "$1" ]]; then
         push <<message>>       :    commits zettelkasten to remote repo
         read <<zet_id>>        :    prints the contents of a zettel
         register <<zet_tag>>   :    adds a tag to the registry if it's not there 
+        s3_sync                :    syncs all the local zettels to the s3 repo
         show <<zet_tag>        :    shows all zettels that have a matching tag
         tags <<zet_id>>        :    returns all tags associated with zettel
         topics                 :    returns all tags in the registry
