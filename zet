@@ -176,6 +176,29 @@ x_link() {
     fi
 }
 
+x_snip() {
+    local s3_images_region="us-west-1"
+    local s3_images_bucket="zettelimages"
+    # set temporary image location
+    image_loc="/tmp/$(date | sed 's/ /_/g').png"
+    if [[ "$1" == "pc" ]]; then
+        # screenshot desktop area and save image
+        gnome-screenshot -ap -f $image_loc # prompts user to select an area
+    elif [[ "$1" == "rm" ]]; then
+        # screenshot reMarkable tablet and save image
+        reSnap -s $REMARKABLE_IP -n -o $image_loc > /dev/null 2> /dev/null
+    elif [[ "$1" == "ipad" ]]; then
+        echo "Not yet implemented..."
+    else
+        echo "invalid usage: -h or --help for help"
+        exit 0
+    fi
+    # upload image to s3
+    aws s3api put-object --bucket $s3_images_bucket --key $(basename $image_loc) --body $image_loc --content-type="image/png" > /dev/null
+    # echo link to the s3 object
+    echo "![image](https://s3.$s3_images_region.amazonaws.com/$s3_images_bucket/$(basename $image_loc))"
+}
+
 ## post a zettelkasten link to twitter
 x_post() {
     local rc
