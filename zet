@@ -87,7 +87,7 @@ x_create() {
     if [[ "$#" -lt 1 ]]; then
         exit 1;
     fi
-    # create zettel directory and readme
+    # create zettel directory, readme, and title the readme 
     local title="$*"
     local dir readme datetime
     datetime="$(x_isomin)"
@@ -175,9 +175,34 @@ x_isomin() { date -u +%Y%m%d%H%M ; }
 x_link() {
     readarray -t directories <<< "$(x_all)"
     if [[ " ${directories[*]} " =~ " $1 " ]]; then
-        link="[$(head -1 "$(x_dir)/$1/README.md" | sed 's/^# //')](../$1)" 
+        link="[$(head -1 "$(x_dir)/$1/README.md" | sed 's/^# //')](../$1/README.md)" 
         echo "$link"
     fi
+}
+
+x_snip() {
+    # init temporary image location
+    image_loc="/tmp/$(date | sed 's/ /_/g').png"
+
+    if [[ "$1" == "pc" ]]; then
+        # screenshot desktop area and save image
+        gnome-screenshot -ap -f $image_loc
+    elif [[ "$1" == "rm" ]]; then
+        # screenshot reMarkable tablet and save image
+        reSnap -s $REMARKABLE_IP -n -o $image_loc > /dev/null 2> /dev/null
+    elif [[ "$1" == "ipad" ]]; then
+        echo Not yet implemented...
+    else
+        echo "invalid usage: -h or --help for help"
+        exit 0
+    fi
+
+    # upload image to s3
+    aws s3api put-object --bucket zettelimages --key $(basename $image_loc) --body $image_loc --content-type="image/png" > /dev/null
+
+    # echo link to the s3 object
+    echo "![image](https://s3.us-west-1.amazonaws.com/zettelimages/$(basename $image_loc))"
+
 }
 
 ## post a zettelkasten link to twitter
@@ -228,10 +253,8 @@ x_push() {
 x_read() {
     readarray -t directories <<< "$(x_all)"
     if [[ " ${directories[*]} " =~ " $1 " ]]; then
-        # $ZET_EDITOR -R "$(x_dir)/$1/README.md"
 		xdg-open $GIT_HOST/tree/main/$1 2> /dev/null
-        # Another option; pros: safer, cons: annoying (q! instead of q to quit)
-        # $ZET_EDITOR - < "$(x_dir/$1/README.md)"
+        # firefox $OPTION/$1/README.md
     fi
 }
 
@@ -316,6 +339,7 @@ if [[ -n "$1" ]]; then
 	tags <<zet_id>>        :    returns all tags associated with zettel
 	topics                 :    returns all tags in the registry
 	zk                     :    show all zettels in friendly format
+    snip <<device>>        :    takes a screenshot of your device
         ------------------------------------------------------------------------
         options:
         ------------------------------------------------------------------------
@@ -328,7 +352,7 @@ if [[ -n "$1" ]]; then
     ## sets the session directory to $PRIVATE else it defaults to $PUBLIC
     if [[ "$1" == "--private" || "$1" == "-p" ]]; then
         OPTION=$PRIVATE
-				GIT_HOST="$GITHUB_URL/$(basename $PRIVATE)"
+		GIT_HOST="$GITHUB_URL/$(basename $PRIVATE)"
         shift 1
     fi
 
