@@ -187,6 +187,9 @@ x_snip() {
     elif [[ "$1" == "rm" ]]; then
         # screenshot reMarkable tablet and save image
         reSnap -s $REMARKABLE_IP -n -o $image_loc > /dev/null 2> /dev/null
+     elif [[ "$1" == "select" ]]; then
+         # pick an image or gif from your computer
+         cp $(zenity --file-selection --file-filter='Image files | *.png *.jpg *.gif') $image_loc
     elif [[ "$1" == "ipad" ]]; then
         echo "Not yet implemented..."
     else
