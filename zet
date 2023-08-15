@@ -108,9 +108,12 @@ x_create() {
     sort -uo "$(x_dir)/REGISTRY.md"{,}
     echo "Committing: $line"
     $(x_push $line)
-    echo "Updating Zettel Mappings..."
-    x_zettel_mapping
-    x_zettel_repository "$datetime"
+
+    if [[ -f "$TWEEPY_CONF" ]]; then
+        echo "Updating Zettel Mappings..."
+        x_zettel_mapping
+        x_zettel_repository "$datetime"
+    fi
 }
 
 ## sets the session directory to either the public or private zk
@@ -132,9 +135,12 @@ x_edit() {
         test -n "$line"
         echo "Committing: $line"
         $(x_push $line)
-        echo "Updating Zettel Mappings..."
-        x_zettel_mapping
-        x_zettel_repository "$1"
+
+        if [[ -f "$TWEEPY_CONF" ]]; then
+            echo "Updating Zettel Mappings..."
+            x_zettel_mapping
+            x_zettel_repository "$datetime"
+        fi
     fi
 }
 
