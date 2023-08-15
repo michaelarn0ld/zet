@@ -14,7 +14,7 @@ PRIVATE=$ZETDIR_PRIVATE
 OPTION=$PUBLIC
 BASE_DIR=$ZET_SCRIPT_DIR
 TWEEPY_CONF="$BASE_DIR/util/tweepy.conf"
-GIT_HOST="$GITHUB_URL/$(basename $PUBLIC)"
+GIT_HOST="$GITHUB_URL/$(basename $OPTION)"
 AWS_CREDS="$HOME/.aws/credentials"
 
 r='\e[31m' # red
@@ -108,9 +108,12 @@ x_create() {
     sort -uo "$(x_dir)/REGISTRY.md"{,}
     echo "Committing: $line"
     $(x_push $line)
-    echo "Updating Zettel Mappings..."
-    x_zettel_mapping
-    x_zettel_repository "$datetime"
+
+    if [[ -f "$TWEEPY_CONF" ]]; then
+        echo "Updating Zettel Mappings..."
+        x_zettel_mapping
+        x_zettel_repository "$datetime"
+    fi
 }
 
 ## sets the session directory to either the public or private zk
@@ -132,9 +135,12 @@ x_edit() {
         test -n "$line"
         echo "Committing: $line"
         $(x_push $line)
-        echo "Updating Zettel Mappings..."
-        x_zettel_mapping
-        x_zettel_repository "$1"
+
+        if [[ -f "$TWEEPY_CONF" ]]; then
+            echo "Updating Zettel Mappings..."
+            x_zettel_mapping
+            x_zettel_repository "$datetime"
+        fi
     fi
 }
 
@@ -171,7 +177,7 @@ x_isomin() { date -u +%Y%m%d%H%M ; }
 x_link() {
     readarray -t directories <<< "$(x_all)"
     if [[ " ${directories[*]} " =~ " $1 " ]]; then
-        link="[$1](../$1) - $(head -1 "$(x_dir)/$1/README.md" | sed 's/^# //')" 
+        link="[$(head -1 "$(x_dir)/$1/README.md" | sed 's/^# //')]($GIT_HOST/tree/main/$1)"
         echo "$link"
     fi
 }
