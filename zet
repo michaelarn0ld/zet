@@ -10,7 +10,6 @@
 
 ZET_EDITOR=$EDITOR
 PUBLIC=$ZETDIR
-PRIVATE=$ZETDIR_PRIVATE
 OPTION=$PUBLIC
 BASE_DIR=$ZET_SCRIPT_DIR
 TWEEPY_CONF="$BASE_DIR/util/tweepy.conf"
@@ -384,20 +383,10 @@ if [[ -n "$1" ]]; then
         zk                     :    show all zettels in friendly format
 
         ------------------------------------------------------------------------
-        options:
-        ------------------------------------------------------------------------
-        -p || --private        :    sets default session directory to "PRIVATE"
         "
         exit 0
     fi
 
-
-    ## sets the session directory to $PRIVATE else it defaults to $PUBLIC
-    if [[ "$1" == "--private" || "$1" == "-p" ]]; then
-        OPTION=$PRIVATE
-	GIT_HOST="$GITHUB_URL/$(basename $PRIVATE)"
-        shift 1
-    fi
 
     ## no valid options were given, check and see if the arg is a valid command
     declare CMD="$1"; shift
